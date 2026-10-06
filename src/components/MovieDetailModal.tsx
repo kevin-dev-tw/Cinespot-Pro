@@ -194,11 +194,11 @@ export const MovieDetailModal = ({
           </div>
 
           {/* Navigation Tabs (Underline Tabs Style) */}
-          <div className="px-6 pt-3 border-b border-white/10 bg-[#0e1017] sticky top-0 z-20 flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="px-3 sm:px-6 pt-3 border-b border-white/10 bg-[#0e1017] flex items-center justify-between">
+            <div className="flex items-center gap-0.5 sm:gap-2">
               <button
                 onClick={() => setActiveTab('overview')}
-                className={`relative px-4 py-3 text-xs sm:text-sm font-display font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                className={`relative px-2.5 sm:px-4 py-3 text-xs sm:text-sm font-display font-bold transition-colors cursor-pointer flex items-center gap-1 sm:gap-1.5 ${
                   activeTab === 'overview' ? 'text-white' : 'text-neutral-400 hover:text-white'
                 }`}
               >
@@ -211,7 +211,7 @@ export const MovieDetailModal = ({
 
               <button
                 onClick={() => setActiveTab('cast')}
-                className={`relative px-4 py-3 text-xs sm:text-sm font-display font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                className={`relative px-2.5 sm:px-4 py-3 text-xs sm:text-sm font-display font-bold transition-colors cursor-pointer flex items-center gap-1 sm:gap-1.5 ${
                   activeTab === 'cast' ? 'text-white' : 'text-neutral-400 hover:text-white'
                 }`}
               >
@@ -230,7 +230,7 @@ export const MovieDetailModal = ({
 
               <button
                 onClick={() => setActiveTab('trailers')}
-                className={`relative px-4 py-3 text-xs sm:text-sm font-display font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                className={`relative px-2.5 sm:px-4 py-3 text-xs sm:text-sm font-display font-bold transition-colors cursor-pointer flex items-center gap-1 sm:gap-1.5 ${
                   activeTab === 'trailers' ? 'text-white' : 'text-neutral-400 hover:text-white'
                 }`}
               >
