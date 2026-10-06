@@ -163,13 +163,13 @@ export const MovieHeroSection = ({
       </div>
 
       {/* Floating Bottom Right Badge (Sound & Tech Specs) */}
-      <div className="hidden lg:flex absolute bottom-12 right-12 flex-col items-end gap-2 text-right">
+      <div className="hidden lg:flex absolute bottom-12 right-12 flex-col items-end gap-1.5 text-right">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/60 border border-white/10 backdrop-blur-md text-xs text-neutral-300">
           <Clapperboard size={14} className="text-[#e50914]" />
-          <span>IMAX 65mm 膠卷數位重製</span>
+          <span>IMAX Enhanced • Dolby Atmos</span>
         </div>
-        <span className="text-[10px] font-mono-code text-neutral-500">
-          DOLBY AUDIO 5.1 & SPATIAL AUDIO
+        <span className="text-[10px] text-neutral-400 font-medium">
+          4K HDR 頂級視聽體驗
         </span>
       </div>
     </section>
