@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { FloatingPillNav } from './components/FloatingPillNav';
 import { MovieHeroSection } from './components/MovieHeroSection';
 import { MovieGrid } from './components/MovieGrid';
@@ -248,6 +249,7 @@ export function App() {
         onClose={() => setSelectedMovie(null)}
         initialPlayTrailer={initialPlayTrailer}
       />
+      <Analytics />
     </div>
   );
 }
