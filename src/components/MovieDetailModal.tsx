@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -125,7 +126,7 @@ export const MovieDetailModal = ({
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <div
         style={{ overscrollBehavior: 'contain' }}
@@ -151,7 +152,10 @@ export const MovieDetailModal = ({
           </button>
 
           {/* Scrollable Card Content */}
-          <div className="overflow-y-auto flex-1 min-h-0 overscroll-contain">
+          <div
+            className="overflow-y-auto flex-1 min-h-0 overscroll-contain"
+            style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+          >
           {/* Cinematic Top Backdrop Banner */}
           <div className="relative h-48 sm:h-80 md:h-[460px] 2xl:h-[520px] w-full overflow-hidden bg-neutral-950">
             <img
@@ -591,6 +595,7 @@ export const MovieDetailModal = ({
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
