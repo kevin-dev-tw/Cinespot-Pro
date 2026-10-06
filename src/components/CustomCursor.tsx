@@ -22,6 +22,7 @@ export const CustomCursor = () => {
         target.closest('a') ||
         target.closest('input') ||
         target.closest('textarea') ||
+        target.closest('select') ||
         target.closest('.cursor-pointer')
       ) {
         setIsHovered(true);
@@ -45,34 +46,34 @@ export const CustomCursor = () => {
     <>
       {/* Outer follow circle */}
       <motion.div
-        className="fixed top-0 left-0 pointer-events-none z-50 rounded-full border border-[#ccff00]/60 mix-blend-difference hidden md:block"
+        className="fixed top-0 left-0 pointer-events-none z-50 rounded-full border border-white/50 mix-blend-difference hidden md:block"
         animate={{
-          x: mousePosition.x - (isHovered ? 24 : 14),
-          y: mousePosition.y - (isHovered ? 24 : 14),
-          width: isHovered ? 48 : 28,
-          height: isHovered ? 48 : 28,
-          backgroundColor: isHovered ? 'rgba(204, 255, 0, 0.15)' : 'transparent',
+          x: mousePosition.x - (isHovered ? 20 : 12),
+          y: mousePosition.y - (isHovered ? 20 : 12),
+          width: isHovered ? 40 : 24,
+          height: isHovered ? 40 : 24,
+          backgroundColor: isHovered ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
         }}
         transition={{
           type: 'spring',
-          damping: 24,
-          stiffness: 280,
-          mass: 0.5,
+          damping: 26,
+          stiffness: 320,
+          mass: 0.4,
         }}
       />
       {/* Center point dot */}
       <motion.div
-        className="fixed top-0 left-0 pointer-events-none z-50 rounded-full bg-[#ccff00] mix-blend-difference hidden md:block"
+        className="fixed top-0 left-0 pointer-events-none z-50 rounded-full bg-white mix-blend-difference hidden md:block"
         animate={{
-          x: mousePosition.x - 3,
-          y: mousePosition.y - 3,
-          width: 6,
-          height: 6,
+          x: mousePosition.x - 2.5,
+          y: mousePosition.y - 2.5,
+          width: 5,
+          height: 5,
         }}
         transition={{
           type: 'spring',
-          damping: 35,
-          stiffness: 800,
+          damping: 40,
+          stiffness: 900,
         }}
       />
     </>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Star, Sparkles, ArrowUpRight, Film } from 'lucide-react';
+import { Play, Star, Info } from 'lucide-react';
 import type { Movie } from '../types/movie';
 import { getPosterUrl, getGenreNames } from '../services/tmdb';
 import { playUiSound } from '../utils/audio';
@@ -26,15 +26,15 @@ export const MovieCard = ({
     : getPosterUrl(movie.poster_path, 'w500');
 
   const genres = getGenreNames(movie.genre_ids);
-  const releaseYear = movie.release_date ? movie.release_date.split('-')[0] : '2026';
+  const releaseYear = movie.release_date ? movie.release_date.split('-')[0] : '2024';
   const rating = movie.vote_average ? movie.vote_average.toFixed(1) : 'NR';
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.5, delay: (index % 6) * 0.08 }}
+      viewport={{ once: true, margin: '-30px' }}
+      transition={{ duration: 0.45, delay: (index % 6) * 0.06 }}
       onMouseEnter={() => {
         playUiSound('hover');
         setIsHovered(true);
@@ -44,10 +44,10 @@ export const MovieCard = ({
         playUiSound('click');
         onSelectMovie(movie);
       }}
-      className={`group relative rounded-3xl overflow-hidden bg-[#0e1017] border transition-all duration-500 flex flex-col cursor-pointer ${
+      className={`group relative rounded-2xl overflow-hidden bg-[#0d0f18] border transition-all duration-300 flex flex-col cursor-pointer ${
         isHovered
-          ? 'border-[#ccff00] shadow-[0_15px_40px_rgba(204,255,0,0.18)] -translate-y-1.5'
-          : 'border-white/10 hover:border-white/25 shadow-xl'
+          ? 'scale-104 -translate-y-1.5 border-white/40 shadow-[0_20px_45px_rgba(0,0,0,0.9)] z-10'
+          : 'border-white/10 hover:border-white/20 shadow-lg'
       }`}
     >
       {/* Poster Image Container */}
@@ -57,35 +57,34 @@ export const MovieCard = ({
           alt={movie.title}
           loading="lazy"
           onError={() => setImgError(true)}
-          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-108 filter contrast-105"
+          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
         />
 
-        {/* Ambient Dark Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0e1017] via-transparent to-black/50" />
+        {/* Streaming Vignette */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0d0f18] via-transparent to-black/40" />
 
         {/* Top Badges */}
-        <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-          {/* TMDB Rating Badge */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-xs font-mono-code">
-            <Star size={12} className="text-[#ccff00] fill-[#ccff00]" />
-            <span className="font-bold text-white">{rating}</span>
-            <span className="text-[10px] text-neutral-400">({movie.vote_count})</span>
+        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+          {/* Rating Pill */}
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-white/15 text-[11px] font-semibold text-white">
+            <Star size={11} className="text-amber-400 fill-amber-400" />
+            <span>{rating}</span>
           </div>
 
-          {/* Release Year Pill */}
-          <div className="px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[11px] font-mono-code text-[#00f0ff]">
-            {releaseYear}
-          </div>
+          {/* 4K Stream Tag */}
+          <span className="px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md border border-white/10 text-[9px] font-mono-code font-bold text-neutral-300">
+            4K HDR
+          </span>
         </div>
 
         {/* Hover Action Overlay */}
         <div
-          className={`absolute inset-0 bg-black/70 backdrop-blur-sm p-5 flex flex-col justify-end transition-opacity duration-300 ${
+          className={`absolute inset-0 bg-black/65 backdrop-blur-xs p-4 flex flex-col justify-end transition-opacity duration-200 ${
             isHovered ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
         >
-          <p className="text-xs font-sans text-neutral-300 line-clamp-4 leading-relaxed mb-4">
-            {movie.overview || '點擊以探索完整電影資訊、演員陣容與官方預告片。'}
+          <p className="text-xs text-neutral-200 line-clamp-3 leading-relaxed mb-3 font-normal">
+            {movie.overview || '點擊探索電影詳情、演出人員陣容與官方預告片。'}
           </p>
 
           <div className="flex items-center gap-2">
@@ -96,10 +95,10 @@ export const MovieCard = ({
                   playUiSound('click');
                   onQuickTrailer(movie);
                 }}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#ccff00] text-black font-display font-black text-xs uppercase tracking-wider hover:bg-white transition-colors shadow-[0_0_15px_rgba(204,255,0,0.3)] cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-white text-black font-display font-bold text-xs hover:bg-neutral-200 transition-colors shadow-md cursor-pointer"
               >
-                <Play size={13} className="fill-black" />
-                <span>播放預告</span>
+                <Play size={12} className="fill-black" />
+                <span>預告片</span>
               </button>
             )}
 
@@ -108,53 +107,36 @@ export const MovieCard = ({
                 playUiSound('click');
                 onSelectMovie(movie);
               }}
-              className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white transition-colors cursor-pointer"
-              title="查看詳情"
+              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 border border-white/20 text-white transition-colors cursor-pointer"
+              title="查看電影詳細資料"
             >
-              <ArrowUpRight size={16} />
+              <Info size={15} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Metadata Bottom Strip */}
-      <div className="p-4 flex flex-col justify-between flex-1 bg-[#0e1017]">
-        {/* Genre Tags */}
-        <div className="flex flex-wrap items-center gap-1.5 mb-2">
-          {genres.map((g, idx) => (
-            <span
-              key={idx}
-              className="text-[10px] font-mono-code text-[#00f0ff] px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10"
-            >
-              {g}
-            </span>
-          ))}
-          {movie.popularity > 300 && (
-            <span className="flex items-center gap-1 text-[10px] font-mono-code text-[#ff5533] px-2 py-0.5 rounded-full bg-[#ff5533]/10 border border-[#ff5533]/20">
-              <Sparkles size={9} />
-              HOT
-            </span>
-          )}
-        </div>
-
+      {/* Metadata Bottom Area */}
+      <div className="p-3.5 flex flex-col justify-between flex-1 bg-[#0d0f18]">
         {/* Title */}
         <div>
-          <h3 className="font-display font-bold text-base sm:text-lg text-white group-hover:text-[#ccff00] transition-colors leading-snug line-clamp-1">
+          <h3 className="font-display font-bold text-sm sm:text-base text-white group-hover:text-white transition-colors leading-snug line-clamp-1">
             {movie.title}
           </h3>
-          <p className="font-mono-code text-[11px] text-neutral-400 mt-0.5 line-clamp-1">
+          <p className="text-[11px] text-neutral-400 mt-0.5 line-clamp-1 font-medium">
             {movie.original_title}
           </p>
         </div>
 
-        {/* View Details Hint */}
-        <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] font-mono-code text-neutral-400">
-          <span className="flex items-center gap-1 text-neutral-400 group-hover:text-white transition-colors">
-            <Film size={12} className="text-[#ccff00]" />
-            詳細資訊與陣容
-          </span>
-          <span className="text-white/40 group-hover:text-[#ccff00] group-hover:translate-x-0.5 transition-all">
-            →
+        {/* Bottom Specs Line */}
+        <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-neutral-400">
+          <div className="flex items-center gap-1.5 font-medium">
+            <span>{releaseYear}</span>
+            <span>•</span>
+            <span className="line-clamp-1 text-neutral-400">{genres[0] || '電影'}</span>
+          </div>
+          <span className="text-emerald-400 font-semibold text-[10px]">
+            熱度 {Math.round(movie.popularity)}
           </span>
         </div>
       </div>

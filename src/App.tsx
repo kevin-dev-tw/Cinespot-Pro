@@ -14,7 +14,6 @@ import { ArrowUp } from 'lucide-react';
 
 export function App() {
   const [activeSection, setActiveSection] = useState<string>('hero');
-  const [navPosition, setNavPosition] = useState<'top' | 'bottom'>('top');
   const [currentCategory, setCurrentCategory] = useState<MovieCategory>('now_playing');
   const [movies, setMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -212,11 +211,11 @@ export function App() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#07080b] text-[#edeef2] overflow-x-hidden selection:bg-[#ccff00] selection:text-black">
+    <div className="relative min-h-screen bg-[#06070a] text-[#f1f3f9] overflow-x-hidden selection:bg-[#e50914] selection:text-white">
       {/* Custom Fluid Cursor */}
       <CustomCursor />
 
-      {/* Floating Pill Navigation Bar (Fixed Top or Bottom) */}
+      {/* Floating Pill Navigation Bar */}
       <FloatingPillNav
         activeSection={activeSection}
         currentCategory={currentCategory}
@@ -226,8 +225,6 @@ export function App() {
           setSearchQuery('');
         }}
         onRandomMovie={handleRandomMovie}
-        navPosition={navPosition}
-        setNavPosition={setNavPosition}
       />
 
       {/* Main Landing & Cinema Feed */}
@@ -237,7 +234,6 @@ export function App() {
           featuredMovie={featuredMovie}
           onOpenDetails={(movie) => handleSelectMovie(movie, false)}
           onPlayTrailer={(movie) => handleSelectMovie(movie, true)}
-          onExploreCategory={() => handleNavigate('movie-filter-section')}
         />
 
         {/* Fluid Locomotive Marquee Ticker 1 */}
@@ -304,26 +300,28 @@ export function App() {
           ]}
         />
 
-        {/* Footer Section */}
-        <footer className="relative w-full py-16 px-4 sm:px-6 lg:px-12 bg-[#050608] border-t border-white/10">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
+        {/* Footer Section (Netflix/Apple Style) */}
+        <footer className="relative w-full py-14 px-4 sm:px-8 lg:px-16 bg-[#040507] border-t border-white/10">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex flex-col items-center md:items-start text-center md:text-left">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#ccff00]" />
-                <span className="font-display font-black text-xl text-white tracking-wider">
-                  SYNTHESIS <span className="text-[#ccff00]">CINEMA</span>
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="w-5 h-5 rounded bg-[#e50914] flex items-center justify-center font-bold text-xs text-white">
+                  C
+                </div>
+                <span className="font-display font-black text-lg text-white tracking-tight">
+                  CINE<span className="text-[#e50914]">STREAM</span>
                 </span>
               </div>
-              <p className="font-mono-code text-xs text-neutral-400 max-w-md leading-relaxed">
-                極致暗黑未來電影探索平台。整合全球院線熱映、熱門榜單、演出人員名單、YouTube 高畫質預告與官方網站連結。
+              <p className="text-xs text-neutral-400 max-w-md leading-relaxed font-normal">
+                現代頂級串流影院探索平台。即時同步院線強檔與熱門榜單，收錄演出人員名單、高畫質 YouTube 預告片與官方網站。
               </p>
-              <div className="mt-3 flex items-center gap-2 text-[11px] font-mono-code text-neutral-500">
-                <span>資料來源支援：</span>
+              <div className="mt-2.5 flex items-center gap-2 text-[11px] text-neutral-500">
+                <span>影音數據串接：</span>
                 <a
                   href="https://www.themoviedb.org/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#00f0ff] hover:underline"
+                  className="text-neutral-300 hover:text-white underline"
                 >
                   The Movie Database (TMDB) API
                 </a>
@@ -336,14 +334,14 @@ export function App() {
                   playUiSound('click');
                   handleNavigate('hero');
                 }}
-                className="px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-xs font-mono-code text-neutral-300 hover:text-white flex items-center gap-2 transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs text-neutral-200 hover:text-white flex items-center gap-2 transition-colors cursor-pointer"
               >
-                <ArrowUp size={13} className="text-[#ccff00]" />
-                <span>返回頂部 (BACK TO TOP)</span>
+                <ArrowUp size={13} className="text-[#e50914]" />
+                <span>返回頂部</span>
               </button>
 
-              <div className="flex items-center gap-2 text-xs font-mono-code text-neutral-500">
-                <span>© 2026 SYNTHESIS CINEMA. ALL RIGHTS RESERVED.</span>
+              <div className="text-xs text-neutral-500">
+                <span>© 2026 CINESTREAM. ALL RIGHTS RESERVED.</span>
               </div>
             </div>
           </div>
