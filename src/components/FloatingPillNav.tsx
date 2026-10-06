@@ -1,29 +1,32 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, VolumeX, ArrowUp, ArrowDown, Ticket, Menu, X, Sparkles } from 'lucide-react';
+import { Volume2, VolumeX, ArrowUp, ArrowDown, Menu, X, Sparkles, Shuffle } from 'lucide-react';
+import type { MovieCategory } from '../types/movie';
 import { playUiSound, toggleSound } from '../utils/audio';
 
 interface FloatingPillNavProps {
   activeSection: string;
+  currentCategory: MovieCategory;
   onNavigate: (sectionId: string) => void;
-  onOpenTickets: () => void;
+  onSelectCategory: (category: MovieCategory) => void;
+  onRandomMovie?: () => void;
   navPosition: 'top' | 'bottom';
   setNavPosition: (pos: 'top' | 'bottom') => void;
 }
 
 const NAV_ITEMS = [
-  { id: 'hero', label: 'Overview', number: '01' },
-  { id: 'concept', label: 'Concept', number: '02' },
-  { id: 'agenda', label: 'Agenda', number: '03' },
-  { id: 'speakers', label: 'Speakers', number: '04' },
-  { id: 'experience', label: 'Venue', number: '05' },
-  { id: 'tickets', label: 'Passes', number: '06' },
+  { id: 'hero', label: '焦點', labelEn: 'Featured', number: '01' },
+  { id: 'now_playing', label: '正在上映', labelEn: 'Now Playing', number: '02' },
+  { id: 'popular', label: '最受歡迎', labelEn: 'Popular', number: '03' },
+  { id: 'top_rated', label: '高分口碑', labelEn: 'Top Rated', number: '04' },
 ];
 
 export const FloatingPillNav = ({
   activeSection,
+  currentCategory,
   onNavigate,
-  onOpenTickets,
+  onSelectCategory,
+  onRandomMovie,
   navPosition,
   setNavPosition,
 }: FloatingPillNavProps) => {
@@ -59,7 +62,12 @@ export const FloatingPillNav = ({
 
   const handleItemClick = (id: string) => {
     playUiSound('click');
-    onNavigate(id);
+    if (id === 'hero') {
+      onNavigate('hero');
+    } else if (id === 'now_playing' || id === 'popular' || id === 'top_rated') {
+      onSelectCategory(id as MovieCategory);
+      onNavigate('movie-grid');
+    }
     setMobileMenuOpen(false);
   };
 
@@ -94,15 +102,15 @@ export const FloatingPillNav = ({
             onClick={() => handleItemClick('hero')}
             onMouseEnter={() => playUiSound('hover')}
             className="group flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors cursor-pointer"
-            title="SYNTHESIS 2026 Home"
+            title="SYNTHESIS CINEMA 首頁"
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ccff00] opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#ccff00]"></span>
             </span>
-            <span className="font-display font-extrabold tracking-wider text-xs md:text-sm text-white flex items-center gap-1">
+            <span className="font-display font-extrabold tracking-wider text-xs md:text-sm text-white flex items-center gap-1.5">
               SYNTHESIS
-              <span className="text-[#ccff00] font-mono-code text-[11px] font-semibold">26</span>
+              <span className="text-[#ccff00] font-mono-code text-[11px] font-semibold">CINEMA</span>
             </span>
           </button>
 
@@ -112,7 +120,11 @@ export const FloatingPillNav = ({
           {/* Desktop Nav Items */}
           <nav className="hidden lg:flex items-center gap-1">
             {NAV_ITEMS.map((item) => {
-              const isActive = activeSection === item.id;
+              const isActive =
+                item.id === 'hero'
+                  ? activeSection === 'hero'
+                  : currentCategory === item.id && activeSection !== 'hero';
+
               return (
                 <button
                   key={item.id}
@@ -156,7 +168,7 @@ export const FloatingPillNav = ({
                 ? 'text-[#00f0ff] hover:bg-[#00f0ff]/10'
                 : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5'
             }`}
-            title={soundOn ? 'Mute Interface Sound (Web Audio)' : 'Unmute Interface Sound'}
+            title={soundOn ? '介面音效開啟 (點擊靜音)' : '介面音效已靜音 (點擊開啟)'}
           >
             {soundOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
           </button>
@@ -166,24 +178,27 @@ export const FloatingPillNav = ({
             onClick={togglePosition}
             onMouseEnter={() => playUiSound('hover')}
             className="p-2 rounded-full text-neutral-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer hidden sm:flex items-center"
-            title={`Dock to ${navPosition === 'top' ? 'Bottom' : 'Top'} viewport`}
+            title={`固定至 ${navPosition === 'top' ? '底部' : '頂部'}`}
           >
             {navPosition === 'top' ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
           </button>
 
-          {/* Pass / Ticket CTA Button */}
-          <button
-            onClick={() => {
-              playUiSound('click');
-              onOpenTickets();
-            }}
-            onMouseEnter={() => playUiSound('hover')}
-            className="relative group overflow-hidden flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-black text-xs font-bold tracking-tight hover:bg-[#ccff00] transition-colors cursor-pointer shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-          >
-            <Ticket size={13} className="transition-transform group-hover:rotate-12" />
-            <span>Passes</span>
-            <span className="hidden sm:inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          </button>
+          {/* Random Movie / Surprise CTA */}
+          {onRandomMovie && (
+            <button
+              onClick={() => {
+                playUiSound('click');
+                onRandomMovie();
+              }}
+              onMouseEnter={() => playUiSound('hover')}
+              className="relative group overflow-hidden flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-black text-xs font-bold tracking-tight hover:bg-[#ccff00] transition-colors cursor-pointer shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+              title="隨機推薦一部電影"
+            >
+              <Shuffle size={13} className="transition-transform group-hover:rotate-45" />
+              <span>隨機選片</span>
+              <span className="hidden sm:inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            </button>
+          )}
 
           {/* Mobile Menu Trigger */}
           <button
@@ -212,50 +227,59 @@ export const FloatingPillNav = ({
             }`}
           >
             <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/10">
-              <span className="text-xs font-mono-code text-neutral-400">NAVIGATION MENU</span>
+              <span className="text-xs font-mono-code text-neutral-400">電影探索導航</span>
               <button
                 onClick={togglePosition}
                 className="flex items-center gap-1 text-[11px] font-mono-code text-[#ccff00] bg-white/5 px-2 py-1 rounded-full cursor-pointer"
               >
-                Dock: {navPosition.toUpperCase()}
+                停靠: {navPosition.toUpperCase()}
               </button>
             </div>
             <div className="flex flex-col gap-1.5">
-              {NAV_ITEMS.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => handleItemClick(item.id)}
-                  className={`flex items-center justify-between px-4 py-2.5 rounded-2xl text-sm font-medium transition-colors text-left cursor-pointer ${
-                    activeSection === item.id
-                      ? 'bg-[#ccff00] text-black font-bold'
-                      : 'text-neutral-300 hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span
-                      className={`text-xs font-mono-code ${
-                        activeSection === item.id ? 'text-black/60' : 'text-neutral-500'
-                      }`}
-                    >
-                      {item.number}
+              {NAV_ITEMS.map((item) => {
+                const isActive =
+                  item.id === 'hero'
+                    ? activeSection === 'hero'
+                    : currentCategory === item.id;
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleItemClick(item.id)}
+                    className={`flex items-center justify-between px-4 py-2.5 rounded-2xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                      isActive
+                        ? 'bg-[#ccff00] text-black font-bold'
+                        : 'text-neutral-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={`text-xs font-mono-code ${
+                          isActive ? 'text-black/60' : 'text-neutral-500'
+                        }`}
+                      >
+                        {item.number}
+                      </span>
+                      {item.label}
                     </span>
-                    {item.label}
-                  </span>
-                  {activeSection === item.id && <Sparkles size={14} />}
-                </button>
-              ))}
-              <div className="pt-2 mt-1 border-t border-white/10">
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenTickets();
-                  }}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-gradient-to-r from-[#ccff00] to-[#00f0ff] text-black font-extrabold text-sm uppercase tracking-wider cursor-pointer"
-                >
-                  <Ticket size={16} />
-                  Reserve Passes
-                </button>
-              </div>
+                    {isActive && <Sparkles size={14} />}
+                  </button>
+                );
+              })}
+              {onRandomMovie && (
+                <div className="pt-2 mt-1 border-t border-white/10">
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onRandomMovie();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-gradient-to-r from-[#ccff00] to-[#00f0ff] text-black font-extrabold text-sm uppercase tracking-wider cursor-pointer"
+                  >
+                    <Shuffle size={16} />
+                    隨機推薦一部電影
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
