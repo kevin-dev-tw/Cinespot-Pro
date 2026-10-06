@@ -1,16 +1,27 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import Lenis from 'lenis';
+import { useState, useEffect, useMemo } from 'react';
 import { FloatingPillNav } from './components/FloatingPillNav';
 import { MovieHeroSection } from './components/MovieHeroSection';
-import { MovieCategoryNav } from './components/MovieCategoryNav';
 import { MovieGrid } from './components/MovieGrid';
 import { MovieDetailModal } from './components/MovieDetailModal';
-import { MarqueeTicker } from './components/MarqueeTicker';
-import { CustomCursor } from './components/CustomCursor';
-import { fetchMoviesByCategory, searchMovies } from './services/tmdb';
+import { fetchMovieSummary, fetchMoviesByCategory, searchMovies } from './services/tmdb';
 import type { Movie, MovieCategory } from './types/movie';
-import { playUiSound } from './utils/audio';
-import { ArrowUp } from 'lucide-react';
+
+const FEATURED_MOVIE_ID = 1228834;
+const FEATURED_MOVIE_FALLBACK: Movie = {
+  id: FEATURED_MOVIE_ID,
+  title: 'The Fix',
+  original_title: 'The Fix',
+  overview:
+    'Disillusioned by the end of the war in Afghanistan, a group of disgraced, war-torn ex-CIA operatives set out to Tehran to take down a life-changing score.',
+  poster_path: null,
+  backdrop_path: null,
+  release_date: '2026-09-11',
+  vote_average: 0,
+  vote_count: 0,
+  popularity: 0,
+  genre_ids: [28, 53],
+  tagline: 'Settle the score.',
+};
 
 export function App() {
   const [activeSection, setActiveSection] = useState<string>('hero');
@@ -21,67 +32,63 @@ export function App() {
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
 
-  // Search & Filters
+  // Search & Sorting
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedGenreId, setSelectedGenreId] = useState<number | null>(null);
-  const [sortBy, setSortBy] = useState<'popularity' | 'vote_average' | 'release_date'>('popularity');
 
   // Selected Movie for Modal
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [initialPlayTrailer, setInitialPlayTrailer] = useState<boolean>(false);
 
   // Featured Hero Movie
-  const [featuredMovie, setFeaturedMovie] = useState<Movie | null>(null);
+  const [featuredMovie, setFeaturedMovie] = useState<Movie>(FEATURED_MOVIE_FALLBACK);
 
-  const lenisRef = useRef<Lenis | null>(null);
-
-  // Initialize Locomotive-inspired inertia smooth scroll via Lenis
   useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: 'vertical',
-      gestureOrientation: 'vertical',
-      smoothWheel: true,
-      wheelMultiplier: 1,
-      touchMultiplier: 2,
+    let isCancelled = false;
+
+    fetchMovieSummary(FEATURED_MOVIE_ID).then((movie) => {
+      if (!isCancelled && movie) {
+        setFeaturedMovie(movie);
+      }
     });
 
-    lenisRef.current = lenis;
-
-    function raf(time: number) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
-
-    const animId = requestAnimationFrame(raf);
-
     return () => {
-      cancelAnimationFrame(animId);
-      lenis.destroy();
-      lenisRef.current = null;
+      isCancelled = true;
     };
   }, []);
 
-  // Section Observer for active navigation pill highlight
   useEffect(() => {
-    const handleScrollSpy = () => {
-      const scrollY = window.scrollY;
-      const windowHeight = window.innerHeight;
-      const heroEl = document.getElementById('hero');
-      const gridEl = document.getElementById('movie-grid');
-
-      if (gridEl && scrollY >= (gridEl.offsetTop - windowHeight * 0.4)) {
-        setActiveSection(currentCategory);
-      } else if (heroEl) {
-        setActiveSection('hero');
-      }
+    const handleContextMenu = (event: MouseEvent) => {
+      event.preventDefault();
     };
 
-    window.addEventListener('scroll', handleScrollSpy, { passive: true });
-    handleScrollSpy();
+    document.addEventListener('contextmenu', handleContextMenu);
+    return () => document.removeEventListener('contextmenu', handleContextMenu);
+  }, []);
 
-    return () => window.removeEventListener('scroll', handleScrollSpy);
+  // Lightweight IntersectionObserver for active section (Zero Layout Thrashing)
+  useEffect(() => {
+    const heroEl = document.getElementById('hero');
+    const gridEl = document.getElementById('movie-grid');
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            if (entry.target.id === 'hero') {
+              setActiveSection('hero');
+            } else if (entry.target.id === 'movie-grid') {
+              setActiveSection(currentCategory);
+            }
+          }
+        });
+      },
+      { threshold: 0.2 }
+    );
+
+    if (heroEl) observer.observe(heroEl);
+    if (gridEl) observer.observe(gridEl);
+
+    return () => observer.disconnect();
   }, [currentCategory]);
 
   // Load Movies when category changes or search query is altered
@@ -104,9 +111,6 @@ export function App() {
           if (!isCancelled) {
             setMovies(data.results);
             setHasMore(data.total_pages > 1);
-            if (!featuredMovie && data.results.length > 0) {
-              setFeaturedMovie(data.results[0]);
-            }
             setIsLoading(false);
           }
         }
@@ -146,39 +150,20 @@ export function App() {
     }
   };
 
-  // Filtered and Sorted Movies
-  const filteredAndSortedMovies = useMemo(() => {
-    let result = [...movies];
-
-    if (selectedGenreId !== null) {
-      result = result.filter(
-        (m) => m.genre_ids && m.genre_ids.includes(selectedGenreId)
-      );
-    }
-
-    result.sort((a, b) => {
-      if (sortBy === 'vote_average') {
-        return (b.vote_average || 0) - (a.vote_average || 0);
-      }
-      if (sortBy === 'release_date') {
-        const dateA = new Date(a.release_date || '1970-01-01').getTime();
-        const dateB = new Date(b.release_date || '1970-01-01').getTime();
+  const sortedMovies = useMemo(
+    () =>
+      [...movies].sort((a, b) => {
+        const dateA = a.release_date ? new Date(a.release_date).getTime() : 0;
+        const dateB = b.release_date ? new Date(b.release_date).getTime() : 0;
         return dateB - dateA;
-      }
-      return (b.popularity || 0) - (a.popularity || 0);
-    });
-
-    return result;
-  }, [movies, selectedGenreId, sortBy]);
+      }),
+    [movies]
+  );
 
   const handleNavigate = (sectionId: string) => {
     const target = document.getElementById(sectionId);
     if (target) {
-      if (lenisRef.current) {
-        lenisRef.current.scrollTo(target, { offset: -20 });
-      } else {
-        target.scrollIntoView({ behavior: 'smooth' });
-      }
+      target.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -187,34 +172,23 @@ export function App() {
     setSelectedMovie(movie);
   };
 
-  const handleRandomMovie = () => {
-    if (movies.length > 0) {
-      const randomIndex = Math.floor(Math.random() * movies.length);
-      const chosen = movies[randomIndex];
-      handleSelectMovie(chosen, false);
-    }
-  };
-
   const categoryTitles: Record<MovieCategory, { title: string; subtitle: string }> = {
     now_playing: {
-      title: '現正熱映院線',
-      subtitle: '即時同步全球各大院線熱映強檔，感受極致視聽盛宴。',
+      title: 'Now Playing in Theaters',
+      subtitle: 'Catch the latest blockbuster releases currently screening in cinemas worldwide.',
     },
     popular: {
-      title: '最受歡迎推薦',
-      subtitle: '全球影迷熱議焦點，年度高話題度霸榜大片精選。',
+      title: 'Popular & Trending',
+      subtitle: 'The most watched and talked-about cinematic releases right now.',
     },
     top_rated: {
-      title: '高分口碑殿堂',
-      subtitle: '歷經影史考驗與影評讚譽的必看神作名單。',
+      title: 'Top Rated Classics',
+      subtitle: 'Critically acclaimed masterpieces and audience all-time favorites.',
     },
   };
 
   return (
     <div className="relative min-h-screen bg-[#06070a] text-[#f1f3f9] overflow-x-hidden selection:bg-[#e50914] selection:text-white">
-      {/* Custom Fluid Cursor */}
-      <CustomCursor />
-
       {/* Floating Pill Navigation Bar */}
       <FloatingPillNav
         activeSection={activeSection}
@@ -224,7 +198,8 @@ export function App() {
           setCurrentCategory(cat);
           setSearchQuery('');
         }}
-        onRandomMovie={handleRandomMovie}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
       />
 
       {/* Main Landing & Cinema Feed */}
@@ -236,115 +211,34 @@ export function App() {
           onPlayTrailer={(movie) => handleSelectMovie(movie, true)}
         />
 
-        {/* Fluid Locomotive Marquee Ticker 1 */}
-        <MarqueeTicker
-          items={[
-            'NOW IN THEATERS',
-            'OFFICIAL 4K TRAILERS',
-            'VERIFIED CAST & DIRECTORS',
-            'TMDB LIVE DATABASE',
-            'IMMERSIVE CINEMATIC ARCHIVE',
-            'OFFICIAL STUDIO LINKS',
-          ]}
-        />
-
-        {/* 02 // Category & Filter Switcher */}
-        <MovieCategoryNav
-          currentCategory={currentCategory}
-          onSelectCategory={(cat) => {
-            setCurrentCategory(cat);
-            setSearchQuery('');
-          }}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          selectedGenreId={selectedGenreId}
-          onSelectGenre={setSelectedGenreId}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-        />
-
-        {/* 03 // Movie Grid Section */}
+        {/* 02 // Movie Grid Section */}
         <MovieGrid
-          movies={filteredAndSortedMovies}
+          movies={sortedMovies}
           isLoading={isLoading}
           onSelectMovie={(m) => handleSelectMovie(m, false)}
           onQuickTrailer={(m) => handleSelectMovie(m, true)}
           category={currentCategory}
           categoryTitle={
             searchQuery.trim()
-              ? `搜尋結果：「${searchQuery}」`
+              ? `Search Results for "${searchQuery}"`
               : categoryTitles[currentCategory].title
           }
           categorySubtitle={
             searchQuery.trim()
-              ? `共找到 ${filteredAndSortedMovies.length} 部符合搜尋的電影`
+              ? `Found ${movies.length} movies matching your query`
               : categoryTitles[currentCategory].subtitle
           }
-          totalCount={filteredAndSortedMovies.length}
+          totalCount={movies.length}
           onLoadMore={handleLoadMore}
-          hasMore={hasMore && !selectedGenreId}
+          hasMore={hasMore}
           isLoadingMore={isLoadingMore}
         />
 
-        {/* Fluid Locomotive Marquee Ticker 2 (Reverse) */}
-        <MarqueeTicker
-          reverse
-          className="border-t border-b border-white/10 bg-[#06070a]"
-          items={[
-            'CURATED FILM ARCHIVES',
-            'DOLBY ATMOS & VISION',
-            'BOX OFFICE INSIGHTS',
-            'DIRECTOR SPOTLIGHTS',
-            'ORIGINAL SOUNDTRACK COMPOSERS',
-            'SYNTHESIS CINEMA 2026',
-          ]}
-        />
-
-        {/* Footer Section (Netflix/Apple Style) */}
-        <footer className="relative w-full py-14 px-4 sm:px-8 lg:px-16 bg-[#040507] border-t border-white/10">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex flex-col items-center md:items-start text-center md:text-left">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-5 h-5 rounded bg-[#e50914] flex items-center justify-center font-bold text-xs text-white">
-                  C
-                </div>
-                <span className="font-display font-black text-lg text-white tracking-tight">
-                  CINE<span className="text-[#e50914]">STREAM</span>
-                </span>
-              </div>
-              <p className="text-xs text-neutral-400 max-w-md leading-relaxed font-normal">
-                現代頂級串流影院探索平台。即時同步院線強檔與熱門榜單，收錄演出人員名單、高畫質 YouTube 預告片與官方網站。
-              </p>
-              <div className="mt-2.5 flex items-center gap-2 text-[11px] text-neutral-500">
-                <span>影音數據串接：</span>
-                <a
-                  href="https://www.themoviedb.org/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-neutral-300 hover:text-white underline"
-                >
-                  The Movie Database (TMDB) API
-                </a>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <button
-                onClick={() => {
-                  playUiSound('click');
-                  handleNavigate('hero');
-                }}
-                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs text-neutral-200 hover:text-white flex items-center gap-2 transition-colors cursor-pointer"
-              >
-                <ArrowUp size={13} className="text-[#e50914]" />
-                <span>返回頂部</span>
-              </button>
-
-              <div className="text-xs text-neutral-500">
-                <span>© 2026 CINESTREAM. ALL RIGHTS RESERVED.</span>
-              </div>
-            </div>
-          </div>
+        {/* Simplified Footer - Copyright Only */}
+        <footer className="w-full py-8 px-4 text-center border-t border-white/10 bg-[#040507]">
+          <p className="text-xs text-neutral-500 font-normal">
+            © 2026 CINESPOT PRO. ALL RIGHTS RESERVED.
+          </p>
         </footer>
       </main>
 

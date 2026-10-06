@@ -9,29 +9,29 @@ import type {
 } from '../types/movie';
 import { FALLBACK_MOVIES, FALLBACK_MOVIE_DETAILS } from '../data/fallbackMovies';
 
-const API_KEY = import.meta.env.VITE_TMDB_API_KEY || '62f405bde2f69d2ae44a4f5e09f38b23';
+const API_KEY = import.meta.env.VITE_TMDB_API_KEY as string | undefined;
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
 export const GENRES_LIST: GenreItem[] = [
-  { id: 28, name: '動作', nameEn: 'Action' },
-  { id: 12, name: '冒險', nameEn: 'Adventure' },
-  { id: 16, name: '動畫', nameEn: 'Animation' },
-  { id: 35, name: '喜劇', nameEn: 'Comedy' },
-  { id: 80, name: '犯罪', nameEn: 'Crime' },
-  { id: 99, name: '紀錄片', nameEn: 'Documentary' },
-  { id: 18, name: '劇情', nameEn: 'Drama' },
-  { id: 10751, name: '家庭', nameEn: 'Family' },
-  { id: 14, name: '奇幻', nameEn: 'Fantasy' },
-  { id: 36, name: '歷史', nameEn: 'History' },
-  { id: 27, name: '恐怖', nameEn: 'Horror' },
-  { id: 10402, name: '音樂', nameEn: 'Music' },
-  { id: 9648, name: '懸疑', nameEn: 'Mystery' },
-  { id: 10749, name: '愛情', nameEn: 'Romance' },
-  { id: 878, name: '科幻', nameEn: 'Sci-Fi' },
-  { id: 53, name: '驚悚', nameEn: 'Thriller' },
-  { id: 10752, name: '戰爭', nameEn: 'War' },
-  { id: 37, name: '西部', nameEn: 'Western' },
+  { id: 28, name: 'Action', nameEn: 'Action' },
+  { id: 12, name: 'Adventure', nameEn: 'Adventure' },
+  { id: 16, name: 'Animation', nameEn: 'Animation' },
+  { id: 35, name: 'Comedy', nameEn: 'Comedy' },
+  { id: 80, name: 'Crime', nameEn: 'Crime' },
+  { id: 99, name: 'Documentary', nameEn: 'Documentary' },
+  { id: 18, name: 'Drama', nameEn: 'Drama' },
+  { id: 10751, name: 'Family', nameEn: 'Family' },
+  { id: 14, name: 'Fantasy', nameEn: 'Fantasy' },
+  { id: 36, name: 'History', nameEn: 'History' },
+  { id: 27, name: 'Horror', nameEn: 'Horror' },
+  { id: 10402, name: 'Music', nameEn: 'Music' },
+  { id: 9648, name: 'Mystery', nameEn: 'Mystery' },
+  { id: 10749, name: 'Romance', nameEn: 'Romance' },
+  { id: 878, name: 'Sci-Fi', nameEn: 'Sci-Fi' },
+  { id: 53, name: 'Thriller', nameEn: 'Thriller' },
+  { id: 10752, name: 'War', nameEn: 'War' },
+  { id: 37, name: 'Western', nameEn: 'Western' },
 ];
 
 export const getPosterUrl = (
@@ -62,7 +62,7 @@ export const getProfileUrl = (
 };
 
 export const getGenreNames = (genreIds?: number[]): string[] => {
-  if (!genreIds || genreIds.length === 0) return ['電影'];
+  if (!genreIds || genreIds.length === 0) return ['Cinema'];
   return genreIds
     .map((id) => GENRES_LIST.find((g) => g.id === id)?.name)
     .filter((name): name is string => Boolean(name))
@@ -74,6 +74,10 @@ export async function fetchMoviesByCategory(
   page: number = 1
 ): Promise<{ results: Movie[]; total_pages: number; total_results: number }> {
   try {
+    if (!API_KEY) {
+      throw new Error('VITE_TMDB_API_KEY is not configured');
+    }
+
     const endpointMap: Record<MovieCategory, string> = {
       now_playing: '/movie/now_playing',
       popular: '/movie/popular',
@@ -81,7 +85,7 @@ export async function fetchMoviesByCategory(
     };
 
     const res = await fetch(
-      `${BASE_URL}${endpointMap[category]}?api_key=${API_KEY}&language=zh-TW&page=${page}`
+      `${BASE_URL}${endpointMap[category]}?api_key=${API_KEY}&language=en-US&page=${page}`
     );
 
     if (!res.ok) {
@@ -114,9 +118,13 @@ export async function searchMovies(
     return { results: [], total_pages: 0, total_results: 0 };
   }
   try {
+    if (!API_KEY) {
+      throw new Error('VITE_TMDB_API_KEY is not configured');
+    }
+
     const encoded = encodeURIComponent(query.trim());
     const res = await fetch(
-      `${BASE_URL}/search/movie?api_key=${API_KEY}&language=zh-TW&query=${encoded}&page=${page}&include_adult=false`
+      `${BASE_URL}/search/movie?api_key=${API_KEY}&language=en-US&query=${encoded}&page=${page}&include_adult=false`
     );
     if (!res.ok) throw new Error(`Search error ${res.status}`);
     const data = await res.json();
@@ -146,38 +154,65 @@ export async function searchMovies(
   }
 }
 
-export async function fetchMovieDetails(movieId: number): Promise<MovieDetail> {
+export async function fetchMovieSummary(movieId: number): Promise<Movie | null> {
   try {
-    // 1. Fetch Chinese details with credits and videos
-    const resZh = await fetch(
-      `${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&language=zh-TW&append_to_response=credits,videos`
+    if (!API_KEY) {
+      throw new Error('VITE_TMDB_API_KEY is not configured');
+    }
+
+    const res = await fetch(
+      `${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&language=en-US`
     );
 
-    if (!resZh.ok) {
-      throw new Error(`Failed to fetch movie ${movieId}: ${resZh.status}`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch movie summary ${movieId}: ${res.status}`);
     }
 
-    const dataZh = await resZh.json();
+    const data = await res.json();
+    return {
+      id: data.id,
+      title: data.title || data.original_title,
+      original_title: data.original_title,
+      overview: data.overview || '',
+      poster_path: data.poster_path,
+      backdrop_path: data.backdrop_path,
+      release_date: data.release_date || '',
+      vote_average: data.vote_average || 0,
+      vote_count: data.vote_count || 0,
+      popularity: data.popularity || 0,
+      genres: data.genres || [],
+      runtime: data.runtime || null,
+      tagline: data.tagline || '',
+    };
+  } catch (err) {
+    console.warn(`Failed to fetch movie summary for ID ${movieId}:`, err);
+    const fallback = Object.values(FALLBACK_MOVIES)
+      .flat()
+      .find((movie) => movie.id === movieId);
+    return fallback || null;
+  }
+}
 
-    let rawVideos = dataZh.videos?.results || [];
-
-    // If no videos in Chinese, fetch English videos
-    if (rawVideos.length === 0) {
-      try {
-        const resEnVideos = await fetch(
-          `${BASE_URL}/movie/${movieId}/videos?api_key=${API_KEY}&language=en-US`
-        );
-        if (resEnVideos.ok) {
-          const dataEnVideos = await resEnVideos.json();
-          rawVideos = dataEnVideos.results || [];
-        }
-      } catch {
-        // ignore video fallback error
-      }
+export async function fetchMovieDetails(movieId: number): Promise<MovieDetail> {
+  try {
+    if (!API_KEY) {
+      throw new Error('VITE_TMDB_API_KEY is not configured');
     }
 
-    const cast: CastMember[] = (dataZh.credits?.cast || []).slice(0, 24);
-    const crew: CrewMember[] = dataZh.credits?.crew || [];
+    // Fetch English details with credits and videos
+    const res = await fetch(
+      `${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&language=en-US&append_to_response=credits,videos`
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch movie ${movieId}: ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    const rawVideos = data.videos?.results || [];
+    const cast: CastMember[] = (data.credits?.cast || []).slice(0, 24);
+    const crew: CrewMember[] = data.credits?.crew || [];
 
     const directors = crew.filter((c) => c.job === 'Director');
     const writers = crew.filter(
@@ -214,25 +249,25 @@ export async function fetchMovieDetails(movieId: number): Promise<MovieDetail> {
       });
 
     const movieDetail: MovieDetail = {
-      id: dataZh.id,
-      title: dataZh.title || dataZh.original_title,
-      original_title: dataZh.original_title,
-      overview: dataZh.overview || '暫無中文劇情簡介。',
-      poster_path: dataZh.poster_path,
-      backdrop_path: dataZh.backdrop_path,
-      release_date: dataZh.release_date || '',
-      vote_average: dataZh.vote_average || 0,
-      vote_count: dataZh.vote_count || 0,
-      popularity: dataZh.popularity || 0,
-      genres: dataZh.genres || [],
-      runtime: dataZh.runtime || null,
-      status: dataZh.status || 'Released',
-      tagline: dataZh.tagline || '',
-      homepage: dataZh.homepage?.trim() ? dataZh.homepage.trim() : null,
-      imdb_id: dataZh.imdb_id || null,
-      budget: dataZh.budget || 0,
-      revenue: dataZh.revenue || 0,
-      production_companies: dataZh.production_companies || [],
+      id: data.id,
+      title: data.title || data.original_title,
+      original_title: data.original_title,
+      overview: data.overview || 'No overview available for this title.',
+      poster_path: data.poster_path,
+      backdrop_path: data.backdrop_path,
+      release_date: data.release_date || '',
+      vote_average: data.vote_average || 0,
+      vote_count: data.vote_count || 0,
+      popularity: data.popularity || 0,
+      genres: data.genres || [],
+      runtime: data.runtime || null,
+      status: data.status || 'Released',
+      tagline: data.tagline || '',
+      homepage: data.homepage?.trim() ? data.homepage.trim() : null,
+      imdb_id: data.imdb_id || null,
+      budget: data.budget || 0,
+      revenue: data.revenue || 0,
+      production_companies: data.production_companies || [],
       cast,
       crew,
       directors,
@@ -247,19 +282,18 @@ export async function fetchMovieDetails(movieId: number): Promise<MovieDetail> {
     if (FALLBACK_MOVIE_DETAILS[movieId]) {
       return FALLBACK_MOVIE_DETAILS[movieId];
     }
-    // Return basic fallback structure
     return {
       id: movieId,
-      title: '電影詳情',
+      title: 'Movie Details',
       original_title: 'Movie Details',
-      overview: '無法取得該電影詳細資料，請檢查網路連線。',
+      overview: 'Unable to fetch details for this movie. Please check your network connection.',
       poster_path: null,
       backdrop_path: null,
       release_date: '2026',
       vote_average: 8.0,
       vote_count: 100,
       popularity: 50,
-      genres: [{ id: 878, name: '科幻' }],
+      genres: [{ id: 878, name: 'Sci-Fi' }],
       runtime: 120,
       status: 'Released',
       tagline: '',

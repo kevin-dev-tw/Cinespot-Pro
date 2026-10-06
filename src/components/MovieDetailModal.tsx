@@ -4,7 +4,6 @@ import {
   X,
   Star,
   Play,
-  Globe,
   ExternalLink,
   Film,
   Users,
@@ -14,15 +13,15 @@ import {
   Loader2,
   Clock,
   Calendar,
+  Info,
 } from 'lucide-react';
 import type { Movie, MovieDetail, Trailer } from '../types/movie';
+import { ActiveUnderline } from './ActiveUnderline';
 import {
   fetchMovieDetails,
   getBackdropUrl,
   getPosterUrl,
-  getProfileUrl,
 } from '../services/tmdb';
-import { playUiSound } from '../utils/audio';
 
 interface MovieDetailModalProps {
   movie: Movie | null;
@@ -68,11 +67,12 @@ export const MovieDetailModal = ({
         if (!isCancelled) setIsLoading(false);
       });
 
+    // Prevent background scroll
+    document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        playUiSound('close');
         onClose();
       }
     };
@@ -80,6 +80,7 @@ export const MovieDetailModal = ({
 
     return () => {
       isCancelled = true;
+      document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
       window.removeEventListener('keydown', handleKeyDown);
     };
@@ -109,7 +110,7 @@ export const MovieDetailModal = ({
   const posterSrc = getPosterUrl(current.poster_path, 'w500');
 
   const formatCurrency = (val: number) => {
-    if (!val || val <= 0) return '未公開';
+    if (!val || val <= 0) return 'Undisclosed';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -118,20 +119,18 @@ export const MovieDetailModal = ({
   };
 
   const formatRuntime = (mins: number | null) => {
-    if (!mins) return '未提供';
+    if (!mins) return 'N/A';
     const h = Math.floor(mins / 60);
     const m = mins % 60;
-    return h > 0 ? `${h}小時 ${m}分` : `${m}分鐘`;
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
 
   return (
     <AnimatePresence>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/85 backdrop-blur-xl overflow-y-auto"
-        onClick={() => {
-          playUiSound('close');
-          onClose();
-        }}
+        style={{ overscrollBehavior: 'contain' }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/90 overflow-y-auto overscroll-contain"
+        onClick={onClose}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 20 }}
@@ -139,22 +138,20 @@ export const MovieDetailModal = ({
           exit={{ opacity: 0, scale: 0.96, y: 20 }}
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           onClick={(e) => e.stopPropagation()}
-          className="relative max-w-4xl w-full max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0e1017] border border-white/15 shadow-[0_25px_80px_rgba(0,0,0,0.95)]"
+          style={{ overscrollBehavior: 'contain' }}
+          className="relative max-w-6xl 2xl:max-w-7xl w-full max-h-[94vh] overflow-y-auto rounded-3xl bg-[#0c0e16] border border-white/15 shadow-[0_25px_90px_rgba(0,0,0,0.95)] overscroll-contain"
         >
           {/* Close Button (Netflix/Apple Style) */}
           <button
-            onClick={() => {
-              playUiSound('close');
-              onClose();
-            }}
-            className="absolute top-4 right-4 p-2.5 rounded-full bg-black/70 hover:bg-neutral-800 border border-white/20 text-white transition-all cursor-pointer z-30 backdrop-blur-md"
-            aria-label="關閉"
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2.5 rounded-full bg-black hover:bg-neutral-800 border border-white/20 text-white transition-all cursor-pointer z-30"
+            aria-label="Close modal"
           >
             <X size={18} />
           </button>
 
           {/* Cinematic Top Backdrop Banner */}
-          <div className="relative h-60 sm:h-80 md:h-96 w-full overflow-hidden bg-neutral-950">
+          <div className="relative h-64 sm:h-96 md:h-[460px] 2xl:h-[520px] w-full overflow-hidden bg-neutral-950">
             <img
               src={backdropSrc}
               alt={current.title}
@@ -178,113 +175,67 @@ export const MovieDetailModal = ({
               <div className="flex flex-wrap items-center gap-2.5">
                 {current.trailers && current.trailers.length > 0 && (
                   <button
-                    onClick={() => {
-                      playUiSound('click');
-                      setActiveTab('trailers');
-                    }}
+                    onClick={() => setActiveTab('trailers')}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-black font-display font-bold text-xs sm:text-sm hover:bg-neutral-200 transition-colors shadow-lg cursor-pointer"
                   >
                     <Play size={15} className="fill-black" />
-                    <span>播放預告片 ({current.trailers.length})</span>
+                    <span>Play Trailer ({current.trailers.length})</span>
                   </button>
                 )}
 
-                {/* Official Website Button */}
-                {current.homepage ? (
-                  <a
-                    href={current.homepage}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => playUiSound('click')}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-white text-xs sm:text-sm font-semibold transition-colors backdrop-blur-md"
-                  >
-                    <Globe size={15} />
-                    <span>官方網站</span>
-                    <ExternalLink size={12} className="text-neutral-300" />
-                  </a>
-                ) : (
-                  <a
-                    href={`https://www.google.com/search?q=${encodeURIComponent(current.title + ' official site')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => playUiSound('click')}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-neutral-300 text-xs sm:text-sm font-semibold transition-colors"
-                  >
-                    <Globe size={15} />
-                    <span>官方搜尋</span>
-                    <ExternalLink size={12} className="text-neutral-400" />
-                  </a>
-                )}
               </div>
             </div>
           </div>
 
-          {/* Navigation Tabs (Apple TV+ Minimalist Tabs) */}
+          {/* Navigation Tabs (Underline Tabs Style) */}
           <div className="px-6 pt-3 border-b border-white/10 bg-[#0e1017] sticky top-0 z-20 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button
-                onClick={() => {
-                  playUiSound('switch');
-                  setActiveTab('overview');
-                }}
-                className={`relative px-4 py-3 text-xs sm:text-sm font-display font-bold transition-colors cursor-pointer ${
+                onClick={() => setActiveTab('overview')}
+                className={`relative px-4 py-3 text-xs sm:text-sm font-display font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
                   activeTab === 'overview' ? 'text-white' : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                電影概述
+                <Info size={14} className={activeTab === 'overview' ? 'text-[#e50914]' : 'text-neutral-400'} />
+                <span>Overview</span>
                 {activeTab === 'overview' && (
-                  <motion.div
-                    layoutId="streamingModalTab"
-                    className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#e50914]"
-                  />
+                  <ActiveUnderline layoutId="streamingModalTab" className="left-0 right-0" />
                 )}
               </button>
 
               <button
-                onClick={() => {
-                  playUiSound('switch');
-                  setActiveTab('cast');
-                }}
+                onClick={() => setActiveTab('cast')}
                 className={`relative px-4 py-3 text-xs sm:text-sm font-display font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
                   activeTab === 'cast' ? 'text-white' : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                <Users size={14} />
-                演出陣容
+                <Users size={14} className={activeTab === 'cast' ? 'text-[#e50914]' : 'text-neutral-400'} />
+                <span>Cast & Crew</span>
                 {current.cast?.length > 0 && (
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-neutral-300">
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-neutral-300 font-semibold">
                     {current.cast.length}
                   </span>
                 )}
                 {activeTab === 'cast' && (
-                  <motion.div
-                    layoutId="streamingModalTab"
-                    className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#e50914]"
-                  />
+                  <ActiveUnderline layoutId="streamingModalTab" className="left-0 right-0" />
                 )}
               </button>
 
               <button
-                onClick={() => {
-                  playUiSound('switch');
-                  setActiveTab('trailers');
-                }}
+                onClick={() => setActiveTab('trailers')}
                 className={`relative px-4 py-3 text-xs sm:text-sm font-display font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
                   activeTab === 'trailers' ? 'text-white' : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                <Film size={14} />
-                相關預告片
+                <Film size={14} className={activeTab === 'trailers' ? 'text-[#e50914]' : 'text-neutral-400'} />
+                <span>Trailers & Clips</span>
                 {current.trailers?.length > 0 && (
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-neutral-300">
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-neutral-300 font-semibold">
                     {current.trailers.length}
                   </span>
                 )}
                 {activeTab === 'trailers' && (
-                  <motion.div
-                    layoutId="streamingModalTab"
-                    className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#e50914]"
-                  />
+                  <ActiveUnderline layoutId="streamingModalTab" className="left-0 right-0" />
                 )}
               </button>
             </div>
@@ -294,7 +245,7 @@ export const MovieDetailModal = ({
               {isLoading && (
                 <span className="flex items-center gap-1 text-[11px] text-[#e50914]">
                   <Loader2 size={12} className="animate-spin" />
-                  載入資料中
+                  Loading details...
                 </span>
               )}
               <div className="flex items-center gap-1 text-amber-400 font-bold">
@@ -321,21 +272,6 @@ export const MovieDetailModal = ({
 
                   {/* Official Links */}
                   <div className="w-full flex flex-col gap-2">
-                    {current.homepage && (
-                      <a
-                        href={current.homepage}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full py-2.5 px-3.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-semibold flex items-center justify-between transition-colors"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Globe size={14} className="text-[#e50914]" />
-                          訪問官方網站
-                        </span>
-                        <ExternalLink size={12} />
-                      </a>
-                    )}
-
                     <a
                       href={`https://www.themoviedb.org/movie/${current.id}`}
                       target="_blank"
@@ -344,7 +280,7 @@ export const MovieDetailModal = ({
                     >
                       <span className="flex items-center gap-2">
                         <Clapperboard size={14} className="text-sky-400" />
-                        TMDB 資料庫專頁
+                        TMDB Database
                       </span>
                       <ExternalLink size={12} />
                     </a>
@@ -357,7 +293,7 @@ export const MovieDetailModal = ({
                         className="w-full py-2.5 px-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 text-xs font-semibold flex items-center justify-between transition-colors"
                       >
                         <span className="flex items-center gap-2 text-amber-400 font-bold">
-                          IMDb 影評頁
+                          IMDb Page
                         </span>
                         <ExternalLink size={12} />
                       </a>
@@ -371,12 +307,12 @@ export const MovieDetailModal = ({
                   <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm font-semibold text-neutral-300 border-b border-white/10 pb-4">
                     <span className="text-emerald-400 font-bold flex items-center gap-1">
                       <CheckCircle2 size={14} />
-                      98% 喜愛度配對
+                      98% Match
                     </span>
                     <span className="text-neutral-500">•</span>
                     <div className="flex items-center gap-1">
                       <Calendar size={13} className="text-neutral-400" />
-                      <span>{current.release_date || '未定'}</span>
+                      <span>{current.release_date || 'TBD'}</span>
                     </div>
                     <span className="text-neutral-500">•</span>
                     <div className="flex items-center gap-1">
@@ -392,17 +328,17 @@ export const MovieDetailModal = ({
                   {/* Synopsis */}
                   <div>
                     <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2">
-                      劇情簡介
+                      Storyline
                     </h4>
                     <p className="font-sans text-sm sm:text-base text-neutral-200 leading-relaxed">
-                      {current.overview || '目前尚無詳細劇情說明。'}
+                      {current.overview || 'No storyline description available for this title.'}
                     </p>
                   </div>
 
                   {/* Genres */}
                   <div>
                     <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2">
-                      影片類型
+                      Genres
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {current.genres?.map((g) => (
@@ -420,46 +356,28 @@ export const MovieDetailModal = ({
                   {(current.directors?.length > 0 || current.composers?.length > 0) && (
                     <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-300 mb-3">
-                        導演與主要主創
+                        Director & Key Creators
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {current.directors?.map((dir) => (
-                          <div key={dir.id} className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-800 border border-white/10">
-                              <img
-                                src={getProfileUrl(dir.profile_path)}
-                                alt={dir.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-[#e50914] font-bold block">
-                                導演 (DIRECTOR)
-                              </span>
-                              <span className="text-xs font-bold text-white">
-                                {dir.name} ({dir.original_name})
-                              </span>
-                            </div>
+                          <div key={dir.id}>
+                            <span className="text-[10px] text-[#e50914] font-bold block">
+                              DIRECTOR
+                            </span>
+                            <span className="text-xs font-bold text-white">
+                              {dir.name} ({dir.original_name})
+                            </span>
                           </div>
                         ))}
 
                         {current.composers?.slice(0, 1).map((comp) => (
-                          <div key={comp.id} className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-800 border border-white/10">
-                              <img
-                                src={getProfileUrl(comp.profile_path)}
-                                alt={comp.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-sky-400 font-bold block">
-                                原創配樂 (MUSIC)
-                              </span>
-                              <span className="text-xs font-bold text-white">
-                                {comp.name}
-                              </span>
-                            </div>
+                          <div key={comp.id}>
+                            <span className="text-[10px] text-sky-400 font-bold block">
+                              ORIGINAL MUSIC
+                            </span>
+                            <span className="text-xs font-bold text-white">
+                              {comp.name}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -470,7 +388,7 @@ export const MovieDetailModal = ({
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div className="p-3 rounded-xl bg-white/[0.02] border border-white/10">
                       <span className="text-[10px] uppercase text-neutral-400 block mb-1">
-                        製作預算
+                        Budget
                       </span>
                       <div className="flex items-center gap-1 text-xs sm:text-sm font-semibold text-white">
                         <DollarSign size={13} className="text-emerald-400" />
@@ -480,7 +398,7 @@ export const MovieDetailModal = ({
 
                     <div className="p-3 rounded-xl bg-white/[0.02] border border-white/10">
                       <span className="text-[10px] uppercase text-neutral-400 block mb-1">
-                        全球票房
+                        Box Office
                       </span>
                       <div className="flex items-center gap-1 text-xs sm:text-sm font-semibold text-white">
                         <DollarSign size={13} className="text-amber-400" />
@@ -490,10 +408,10 @@ export const MovieDetailModal = ({
 
                     <div className="p-3 rounded-xl bg-white/[0.02] border border-white/10">
                       <span className="text-[10px] uppercase text-neutral-400 block mb-1">
-                        發行狀態
+                        Status
                       </span>
                       <span className="text-xs sm:text-sm font-semibold text-white">
-                        {current.status === 'Released' ? '全球院線正式上映' : current.status}
+                        {current.status === 'Released' ? 'Released' : current.status}
                       </span>
                     </div>
                   </div>
@@ -506,33 +424,25 @@ export const MovieDetailModal = ({
               <div>
                 <div className="mb-6">
                   <h3 className="font-display font-bold text-xl text-white">
-                    主要演員陣容
+                    Top Billed Cast
                   </h3>
                   <p className="text-xs text-neutral-400 mt-1">
-                    全體共 {current.cast?.length || 0} 位演出人員
+                    Full cast of {current.cast?.length || 0} performers
                   </p>
                 </div>
 
                 {/* Cast Portrait Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-3.5">
                   {current.cast?.map((member) => (
                     <div
                       key={member.id}
                       className="group p-2.5 rounded-xl bg-white/[0.02] border border-white/10 hover:border-white/30 transition-all flex flex-col"
                     >
-                      <div className="w-full aspect-[3/4] rounded-lg overflow-hidden bg-neutral-900 border border-white/10 mb-2">
-                        <img
-                          src={getProfileUrl(member.profile_path)}
-                          alt={member.name}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
                       <h5 className="font-display font-bold text-xs sm:text-sm text-white line-clamp-1">
                         {member.name}
                       </h5>
                       <p className="text-[11px] text-neutral-400 line-clamp-1 mt-0.5">
-                        飾 {member.character || '演員'}
+                        as {member.character || 'Self'}
                       </p>
                     </div>
                   ))}
@@ -542,7 +452,7 @@ export const MovieDetailModal = ({
                 {current.crew?.length > 0 && (
                   <div className="mt-8 pt-6 border-t border-white/10">
                     <h4 className="font-display font-bold text-base text-white mb-3">
-                      幕後核心編劇與製作團隊
+                      Key Crew & Writers
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                       {current.crew?.slice(0, 9).map((c, idx) => (
@@ -571,10 +481,10 @@ export const MovieDetailModal = ({
               <div>
                 <div className="mb-4">
                   <h3 className="font-display font-bold text-xl text-white">
-                    相關官方預告片與影音特輯
+                    Official Trailers & Videos
                   </h3>
                   <p className="text-xs text-neutral-400 mt-1">
-                    可直接於播放器內觀看 YouTube 高畫質影片
+                    Stream official high-definition YouTube previews directly
                   </p>
                 </div>
 
@@ -598,7 +508,7 @@ export const MovieDetailModal = ({
                       <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 rounded-xl bg-white/[0.03] border border-white/10">
                         <div>
                           <span className="text-[10px] font-bold text-[#e50914] uppercase tracking-wider block">
-                            現正播放 // {activeTrailer.type}
+                            NOW PLAYING // {activeTrailer.type}
                           </span>
                           <h4 className="font-display font-bold text-sm sm:text-base text-white">
                             {activeTrailer.name}
@@ -612,7 +522,7 @@ export const MovieDetailModal = ({
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors"
                         >
                           <Play size={12} className="fill-current" />
-                          <span>在 YouTube 觀看</span>
+                          <span>Watch on YouTube</span>
                           <ExternalLink size={11} />
                         </a>
                       </div>
@@ -621,7 +531,7 @@ export const MovieDetailModal = ({
                     {/* Other Trailers List */}
                     <div>
                       <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2.5">
-                        切換其他預告片
+                        More Trailers & Clips
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                         {current.trailers.map((t) => {
@@ -629,10 +539,7 @@ export const MovieDetailModal = ({
                           return (
                             <button
                               key={t.id}
-                              onClick={() => {
-                                playUiSound('click');
-                                setActiveTrailer(t);
-                              }}
+                              onClick={() => setActiveTrailer(t)}
                               className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                                 isSelected
                                   ? 'bg-[#e50914]/15 border-[#e50914] text-white shadow-md'
@@ -645,7 +552,7 @@ export const MovieDetailModal = ({
                                 </span>
                                 {t.official && (
                                   <span className="px-1.5 py-0.2 rounded bg-white/10 text-[9px] text-neutral-300 font-semibold">
-                                    官方
+                                    OFFICIAL
                                   </span>
                                 )}
                               </div>
@@ -661,7 +568,7 @@ export const MovieDetailModal = ({
                 ) : (
                   <div className="p-10 text-center rounded-xl bg-white/[0.02] border border-white/10">
                     <p className="text-sm text-neutral-400 mb-3">
-                      暫無直接相關預告片。
+                      No official trailers found for this title.
                     </p>
                     <a
                       href={`https://www.youtube.com/results?search_query=${encodeURIComponent(current.title + ' trailer')}`}
@@ -670,7 +577,7 @@ export const MovieDetailModal = ({
                       className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold"
                     >
                       <Play size={13} />
-                      在 YouTube 搜尋預告
+                      Search on YouTube
                     </a>
                   </div>
                 )}

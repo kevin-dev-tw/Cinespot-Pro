@@ -1,58 +1,97 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, VolumeX, Menu, X, Sparkles, Shuffle, Flame, Compass, Trophy } from 'lucide-react';
+import {
+  Menu,
+  X,
+  Sparkles,
+  Flame,
+  Compass,
+  Trophy,
+  Search,
+} from 'lucide-react';
 import type { MovieCategory } from '../types/movie';
-import { playUiSound, toggleSound } from '../utils/audio';
+import { ActiveUnderline } from './ActiveUnderline';
 
 interface FloatingPillNavProps {
   activeSection: string;
   currentCategory: MovieCategory;
   onNavigate: (sectionId: string) => void;
   onSelectCategory: (category: MovieCategory) => void;
-  onRandomMovie?: () => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
 }
 
 const NAV_ITEMS: { id: string; label: string; icon: typeof Compass }[] = [
-  { id: 'hero', label: '精選焦點', icon: Compass },
-  { id: 'now_playing', label: '院線熱映', icon: Flame },
-  { id: 'popular', label: '熱門強檔', icon: Sparkles },
-  { id: 'top_rated', label: '口碑高分', icon: Trophy },
+  { id: 'hero', label: 'Featured', icon: Compass },
+  { id: 'now_playing', label: 'In Theaters', icon: Flame },
+  { id: 'popular', label: 'Popular', icon: Sparkles },
+  { id: 'top_rated', label: 'Top Rated', icon: Trophy },
 ];
+
+const SearchInput = ({
+  value,
+  onChange,
+  className = '',
+  inputClassName = '',
+}: {
+  value: string;
+  onChange: (query: string) => void;
+  className?: string;
+  inputClassName?: string;
+}) => (
+  <div className={`relative ${className}`}>
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="Search movies, actors, directors..."
+      className={`w-full py-2 pl-9 pr-9 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 focus:border-white/40 text-xs sm:text-sm text-white placeholder-neutral-500 outline-none transition-all ${inputClassName}`}
+    />
+    <Search
+      size={14}
+      className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+    />
+    {value && (
+      <button
+        onClick={() => onChange('')}
+        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-neutral-400 hover:text-white cursor-pointer"
+        aria-label="Clear Search"
+      >
+        <X size={13} />
+      </button>
+    )}
+  </div>
+);
 
 export const FloatingPillNav = ({
   activeSection,
   currentCategory,
   onNavigate,
   onSelectCategory,
-  onRandomMovie,
+  searchQuery,
+  onSearchChange,
 }: FloatingPillNavProps) => {
-  const [soundOn, setSoundOn] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
-      const currentScroll = window.scrollY;
-      setScrolled(currentScroll > 30);
-      if (totalScroll > 0) {
-        setScrollProgress((currentScroll / totalScroll) * 100);
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileMenuOpen(false);
       }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+      document.addEventListener('keydown', handleEscape);
+    }
 
-  const handleSoundToggle = () => {
-    const nextState = toggleSound();
-    setSoundOn(nextState);
-    if (nextState) playUiSound('switch');
-  };
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [mobileMenuOpen]);
 
   const handleItemClick = (id: string) => {
-    playUiSound('click');
     if (id === 'hero') {
       onNavigate('hero');
     } else if (id === 'now_playing' || id === 'popular' || id === 'top_rated') {
@@ -62,178 +101,151 @@ export const FloatingPillNav = ({
     setMobileMenuOpen(false);
   };
 
+  const handleViewResults = () => {
+    setMobileMenuOpen(false);
+    onNavigate('movie-grid');
+  };
+
   return (
     <>
-      {/* Top slim scroll progress bar */}
-      <div className="fixed top-0 left-0 right-0 h-[2px] z-50 pointer-events-none bg-white/5">
-        <div
-          className="h-full bg-gradient-to-r from-[#e50914] via-[#ff3b30] to-[#e50914] transition-all duration-150"
-          style={{ width: `${scrollProgress}%` }}
-        />
-      </div>
-
-      {/* Floating Streaming Navigation Bar */}
-      <motion.header
-        initial={{ y: -60, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="fixed z-40 top-4 left-0 right-0 flex justify-center px-4 pointer-events-none"
-      >
-        <div
-          className={`pointer-events-auto flex items-center justify-between gap-3 sm:gap-6 px-3.5 py-2.5 sm:px-5 sm:py-2.5 rounded-full border transition-all duration-500 shadow-2xl ${
-            scrolled
-              ? 'bg-[#0a0c13]/90 border-white/15 shadow-[0_12px_40px_rgba(0,0,0,0.85)] backdrop-blur-2xl'
-              : 'bg-[#0e1018]/70 border-white/10 backdrop-blur-xl'
-          }`}
-        >
-          {/* Netflix/Apple TV+ Style Brand Badge */}
-          <button
-            onClick={() => handleItemClick('hero')}
-            onMouseEnter={() => playUiSound('hover')}
-            className="group flex items-center gap-2.5 cursor-pointer"
-            title="首頁"
-          >
-            <div className="relative w-7 h-7 rounded-lg bg-gradient-to-br from-[#e50914] to-[#b20710] flex items-center justify-center font-display font-black text-white text-base shadow-[0_0_15px_rgba(229,9,20,0.5)]">
-              C
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="font-display font-black text-sm tracking-tight text-white group-hover:text-neutral-200 transition-colors">
-                CINE<span className="text-[#e50914]">STREAM</span>
-              </span>
-              <span className="hidden sm:inline-block text-[10px] font-mono-code text-neutral-400 font-semibold px-1.5 py-0.2 rounded bg-white/10">
-                PRO
-              </span>
-            </div>
-          </button>
-
-          {/* Desktop Streaming Navigation Tabs */}
-          <nav className="hidden md:flex items-center gap-1">
-            {NAV_ITEMS.map((item) => {
-              const isActive =
-                item.id === 'hero'
-                  ? activeSection === 'hero'
-                  : currentCategory === item.id && activeSection !== 'hero';
-              const Icon = item.icon;
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleItemClick(item.id)}
-                  onMouseEnter={() => playUiSound('hover')}
-                  className={`relative px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all cursor-pointer flex items-center gap-1.5 ${
-                    isActive
-                      ? 'text-white'
-                      : 'text-neutral-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeStreamingPill"
-                      className="absolute inset-0 bg-white/15 rounded-full z-[-1] border border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                  <Icon
-                    size={13}
-                    className={isActive ? 'text-[#e50914]' : 'text-neutral-400'}
-                  />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Right Action Icons: Sound, Random Pick, Mobile Trigger */}
-          <div className="flex items-center gap-2">
-            {/* Audio Toggle */}
+      {/* Full-Bleed Streaming Top Navigation Bar */}
+      <header className="fixed top-0 left-0 right-0 z-50 w-full h-14 sm:h-16 bg-[#06070a] border-b border-white/10 shadow-md">
+        <div className="w-full h-full px-4 sm:px-8 lg:px-14 2xl:px-20 flex items-center justify-between gap-4">
+          {/* Left: Brand Logo & Desktop Nav Tabs */}
+          <div className="flex items-center gap-6 lg:gap-10 min-w-0">
+            {/* Logo */}
             <button
-              onClick={handleSoundToggle}
-              onMouseEnter={() => playUiSound('hover')}
-              className={`p-2 rounded-full transition-colors cursor-pointer ${
-                soundOn
-                  ? 'text-neutral-300 hover:text-white hover:bg-white/10'
-                  : 'text-neutral-600 hover:text-neutral-400 hover:bg-white/5'
-              }`}
-              title={soundOn ? '介面音效已開啟' : '介面音效已靜音'}
+              onClick={() => handleItemClick('hero')}
+              className="flex items-center cursor-pointer group shrink-0"
+              title="Home"
             >
-              {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              <span className="font-display font-black text-base sm:text-lg tracking-tight text-white group-hover:text-neutral-300 transition-colors">
+                CINESPOT PRO
+              </span>
             </button>
 
-            {/* Random Movie Button (Netflix Shuffle Style) */}
-            {onRandomMovie && (
-              <button
-                onClick={() => {
-                  playUiSound('click');
-                  onRandomMovie();
-                }}
-                onMouseEnter={() => playUiSound('hover')}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-semibold transition-all duration-200 cursor-pointer shadow-sm hover:scale-[1.03]"
-                title="隨機播放 / 選一部電影"
-              >
-                <Shuffle size={13} className="text-[#e50914]" />
-                <span className="hidden sm:inline">隨機選片</span>
-              </button>
-            )}
-
-            {/* Mobile Menu Trigger */}
-            <button
-              onClick={() => {
-                playUiSound('switch');
-                setMobileMenuOpen(!mobileMenuOpen);
-              }}
-              className="md:hidden p-2 rounded-full text-neutral-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              aria-label="開啟選單"
-            >
-              {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
-            </button>
-          </div>
-        </div>
-      </motion.header>
-
-      {/* Mobile Drawer Overlay */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.25 }}
-            className="fixed z-40 top-20 left-4 right-4 max-w-sm mx-auto p-4 rounded-3xl bg-[#0c0e16]/95 border border-white/15 backdrop-blur-2xl shadow-2xl"
-          >
-            <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/10">
-              <span className="text-xs font-mono-code text-neutral-400 uppercase tracking-wider">
-                串流導航
-              </span>
-              <span className="text-[11px] font-mono-code text-[#e50914] bg-[#e50914]/10 px-2 py-0.5 rounded-full">
-                CINESTREAM
-              </span>
-            </div>
-            <div className="flex flex-col gap-1.5">
+            {/* Desktop Navigation Links (Underline Tabs Style) */}
+            <nav className="hidden lg:flex items-center gap-1">
               {NAV_ITEMS.map((item) => {
                 const isActive =
                   item.id === 'hero'
                     ? activeSection === 'hero'
-                    : currentCategory === item.id;
+                    : currentCategory === item.id && activeSection !== 'hero';
                 const Icon = item.icon;
 
                 return (
                   <button
                     key={item.id}
                     onClick={() => handleItemClick(item.id)}
-                    className={`flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition-colors text-left cursor-pointer ${
+                    className={`relative px-4 py-3 text-xs sm:text-sm font-display font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
                       isActive
-                        ? 'bg-[#e50914] text-white font-bold shadow-lg shadow-[#e50914]/30'
-                        : 'text-neutral-300 hover:bg-white/5 hover:text-white'
+                        ? 'text-white'
+                        : 'text-neutral-400 hover:text-white'
                     }`}
                   >
-                    <span className="flex items-center gap-2.5">
-                      <Icon size={16} className={isActive ? 'text-white' : 'text-neutral-400'} />
-                      {item.label}
-                    </span>
-                    {isActive && <Sparkles size={14} />}
+                    <Icon
+                      size={14}
+                      className={isActive ? 'text-[#e50914]' : 'text-neutral-400'}
+                    />
+                    <span>{item.label}</span>
+                    {isActive && (
+                      <ActiveUnderline layoutId="activeNavUnderline" className="left-0 right-0" />
+                    )}
                   </button>
                 );
               })}
+            </nav>
+          </div>
+
+          {/* Right Action: Search & Mobile Menu Trigger */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="hidden lg:flex items-center gap-3">
+              <SearchInput
+                value={searchQuery}
+                onChange={onSearchChange}
+                className="w-52 xl:w-72"
+              />
+            </div>
+
+            {/* Mobile Menu Trigger */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2.5 rounded-full text-neutral-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              aria-label={mobileMenuOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Full-Screen Menu */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -18 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="fixed inset-x-0 top-14 sm:top-16 bottom-0 z-40 lg:hidden bg-[#06070a] overflow-y-auto overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mobile Navigation"
+          >
+            <div className="w-full min-h-full px-4 sm:px-8 py-6 flex flex-col">
+              {/* Mobile Search */}
+              <div className="mb-7">
+                <span className="block text-[10px] font-mono-code text-neutral-500 uppercase tracking-[0.2em] mb-2.5">
+                  Search
+                </span>
+                <SearchInput
+                  value={searchQuery}
+                  onChange={onSearchChange}
+                  inputClassName="py-3.5 pl-10 pr-11 rounded-2xl text-sm bg-white/[0.07]"
+                />
+                {searchQuery.trim() && (
+                  <button
+                    onClick={handleViewResults}
+                    className="mt-3 w-full py-3 rounded-2xl bg-[#e50914] text-white text-sm font-bold transition-colors cursor-pointer"
+                  >
+                    View Results
+                  </button>
+                )}
+              </div>
+
+              {/* Mobile Navigation */}
+              <div className="flex-1">
+                <span className="block text-[10px] font-mono-code text-neutral-500 uppercase tracking-[0.2em] mb-2.5">
+                  Browse
+                </span>
+                <nav className="flex flex-col">
+                  {NAV_ITEMS.map((item) => {
+                    const isActive =
+                      item.id === 'hero'
+                        ? activeSection === 'hero'
+                        : currentCategory === item.id;
+
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleItemClick(item.id)}
+                        className={`relative min-h-[48px] flex items-center px-1 text-base font-display font-bold transition-colors text-left cursor-pointer border-b border-white/5 ${
+                          isActive
+                            ? 'text-white'
+                            : 'text-neutral-400 hover:text-white'
+                        }`}
+                      >
+                        {item.label}
+                        {isActive && (
+                          <ActiveUnderline layoutId="activeMobileNavUnderline" className="left-0 w-14" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+
             </div>
           </motion.div>
         )}
