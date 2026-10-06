@@ -129,7 +129,7 @@ export const MovieDetailModal = ({
     <AnimatePresence>
       <div
         style={{ overscrollBehavior: 'contain' }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-8 bg-black/90 overflow-y-auto overscroll-contain"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-8 bg-black/90 overflow-hidden overscroll-contain"
         onClick={onClose}
       >
         <motion.div
@@ -139,7 +139,7 @@ export const MovieDetailModal = ({
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           onClick={(e) => e.stopPropagation()}
           style={{ overscrollBehavior: 'contain' }}
-          className="relative max-w-6xl 2xl:max-w-7xl w-full max-h-[85vh] sm:max-h-[90vh] md:max-h-[94vh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-[#0c0e16] border border-white/15 shadow-[0_25px_90px_rgba(0,0,0,0.95)] overscroll-contain"
+          className="relative max-w-6xl 2xl:max-w-7xl w-full max-h-[85dvh] sm:max-h-[90dvh] md:max-h-[94dvh] overflow-hidden flex flex-col rounded-2xl sm:rounded-3xl bg-[#0c0e16] border border-white/15 shadow-[0_25px_90px_rgba(0,0,0,0.95)] overscroll-contain"
         >
           {/* Close Button (Netflix/Apple Style) */}
           <button
@@ -150,6 +150,8 @@ export const MovieDetailModal = ({
             <X size={18} />
           </button>
 
+          {/* Scrollable Card Content */}
+          <div className="overflow-y-auto flex-1 min-h-0 overscroll-contain">
           {/* Cinematic Top Backdrop Banner */}
           <div className="relative h-48 sm:h-80 md:h-[460px] 2xl:h-[520px] w-full overflow-hidden bg-neutral-950">
             <img
@@ -585,6 +587,7 @@ export const MovieDetailModal = ({
                 )}
               </div>
             )}
+          </div>
           </div>
         </motion.div>
       </div>
