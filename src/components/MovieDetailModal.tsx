@@ -210,7 +210,8 @@ export const MovieDetailModal = ({
                 }`}
               >
                 <Users size={14} className={activeTab === 'cast' ? 'text-[#e50914]' : 'text-neutral-400'} />
-                <span>Cast & Crew</span>
+                <span className="hidden sm:inline">Cast & Crew</span>
+                <span className="sm:hidden">Cast</span>
                 {current.cast?.length > 0 && (
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-neutral-300 font-semibold">
                     {current.cast.length}
@@ -228,7 +229,8 @@ export const MovieDetailModal = ({
                 }`}
               >
                 <Film size={14} className={activeTab === 'trailers' ? 'text-[#e50914]' : 'text-neutral-400'} />
-                <span>Trailers & Clips</span>
+                <span className="hidden sm:inline">Trailers & Clips</span>
+                <span className="sm:hidden">Trailers</span>
                 {current.trailers?.length > 0 && (
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-neutral-300 font-semibold">
                     {current.trailers.length}
